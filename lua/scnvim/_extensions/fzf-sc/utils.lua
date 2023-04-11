@@ -1,6 +1,6 @@
 local M = {}
 local action = require("fzf.actions").action
-local scpath = require "scnvim/path"
+local scpath = require("scnvim/path")
 
 -- ------------------------------------
 -- Utilities
@@ -20,29 +20,29 @@ local scpath = require "scnvim/path"
 -- end
 
 function M.rm_whitespace(instring)
-	return string.gsub(instring, "%s", "");
+	return string.gsub(instring, "%s", "")
 end
 
 -- Remove brackets and extraneous whitespace
 function M.strip(arrayAsString)
-	arrayAsString = string.gsub(arrayAsString, "%[", "");
-	arrayAsString = string.gsub(arrayAsString, "%]", "");
+	arrayAsString = string.gsub(arrayAsString, "%[", "")
+	arrayAsString = string.gsub(arrayAsString, "%]", "")
 
 	return arrayAsString
 end
 
 -- Takes a supercolldier array as string, eg "[1, 2, 3]" and spits out a lua table
 function M.split_string_to_array(arrayAsString)
-	local t = {};
+	local t = {}
 
 	arrayAsString = M.rm_whitespace(arrayAsString)
 	arrayAsString = M.strip(arrayAsString)
 
-	local sep = ",";
+	local sep = ","
 
-	for str in string.gmatch(arrayAsString, "([^"..sep.."]+)") do
-		table.insert(t, str);
-	end;
+	for str in string.gmatch(arrayAsString, "([^" .. sep .. "]+)") do
+		table.insert(t, str)
+	end
 
 	return t
 end
@@ -56,21 +56,20 @@ function M.fzf_sc_eval(sc_code, callback, prompt, preview, preview_size)
 	assert(sc_code)
 	assert(callback)
 
-	require'scnvim'.eval(sc_code,
-	function (returnVal)
+	require("scnvim").eval(sc_code, function(returnVal)
 		local scReturnVal = M.split_string_to_array(returnVal)
 
 		-- Callback function
-		local sinkFunction;
+		local sinkFunction
 
 		if type(callback) == "string" then
-			sinkFunction = function (val)
+			sinkFunction = function(val)
 				local formatted = string.format(callback, val)
 				-- print(formatted)
-				require'scnvim'.send(formatted)
-			end;
+				require("scnvim").send(formatted)
+			end
 		elseif type(callback) == "function" then
-			sinkFunction = function (val)
+			sinkFunction = function(val)
 				callback(val)
 			end
 		else
@@ -82,30 +81,32 @@ function M.fzf_sc_eval(sc_code, callback, prompt, preview, preview_size)
 		-- Inspiration: https://github.com/vijaymarupudi/nvim-fzf-commands/blob/master/lua/fzf-commands/bufferpicker.lua
 		local preview_function
 
-		if not prompt then prompt = "fzf-sc: " end
+		if not prompt then
+			prompt = "fzf-sc: "
+		end
 		-- if not header then header = "" end
 		-- "--header " .. header ..
-		local fzfopts =  "--ansi --prompt " .. prompt .. " "
+		local fzfopts = "--ansi --prompt " .. prompt .. " "
 		if preview then
 			-- coroutine.wrap(function ()
 			preview_function = action(preview)
 			-- end)
 
-			if not preview_size then preview_size = "10" end
+			if not preview_size then
+				preview_size = "10"
+			end
 			fzfopts = fzfopts .. "--preview=" .. preview_function .. " --preview-window bottom:" .. preview_size .. " "
 		end
 
 		coroutine.wrap(function()
-			local result = require'fzf'.fzf(scReturnVal, fzfopts, require"scnvim._extensions.fzf-sc.main".options);
+			local result = require("fzf").fzf(scReturnVal, fzfopts, require("scnvim._extensions.fzf-sc.main").options)
 			if result then
 				-- print(result[1])
 				sinkFunction(result[1])
-			end;
-		end)();
-
+			end
+		end)()
 	end
-
-	)
+)
 end
 
 function scnvim_unpack_tags_table()
@@ -115,7 +116,7 @@ function scnvim_unpack_tags_table()
 	local help = {}
 
 	for line in tagsfile:lines() do
-		local tagname, tagpath, _, _= line:match("%s*(.-)\t%s*(.-)\t%s*(.-)\t%s*(.-)")
+		local tagname, tagpath, _, _ = line:match("%s*(.-)\t%s*(.-)\t%s*(.-)\t%s*(.-)")
 		help[tostring(tagname)] = tagpath
 		-- print(tagname)
 	end
@@ -125,24 +126,24 @@ end
 
 function M.definitions()
 	local help = scnvim_unpack_tags_table()
-	local help_keys = {};
+	local help_keys = {}
 
-	for k,_ in pairs(help) do
+	for k, _ in pairs(help) do
 		table.insert(help_keys, k)
 	end
 
 	local lookup_func = function(class_name)
 		local key = tostring(class_name)
 		local lookup_path = help[key]
-		vim.cmd("spl " .. lookup_path)
+		vim.cmd("e " .. lookup_path)
 	end
 
 	coroutine.wrap(function()
-		local result = require'fzf'.fzf(help_keys);
+		local result = require("fzf").fzf(help_keys)
 		if result then
 			lookup_func(result[1])
-		end;
-	end)();
+		end
+	end)()
 end
 
 return M
